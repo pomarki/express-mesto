@@ -8,13 +8,15 @@ module.exports.getUsers = (req, res) => {
 
 module.exports.getUserById = (req, res) => {
   const ERROR_CODE = 404;
-  User.findById(req.params.id)
+  User.findById(req.params.userId)
 
     .orFail(new Error('NotValidId'))
     .then((user) => res.send({ data: user }))
     .catch((error) => {
       if (error.message === 'NotValidId') {
         res.status(ERROR_CODE).send({ message: 'Пользователя не существует' });
+      } else if (error.name === 'CastError') {
+        res.status(400).send({ message: 'Пользователя не существует' });
       } else {
         res.status(500).send({ message: 'Произошла ошибка' });
       }
