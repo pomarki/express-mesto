@@ -1,3 +1,5 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 
 module.exports.getUsers = (req, res) => {
@@ -25,15 +27,31 @@ module.exports.getUserById = (req, res) => {
 
 module.exports.createUser = (req, res) => {
   const ERROR_CODE = 400;
-  User.create(req.body)
-    .then((user) => res.send({ data: user }))
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(ERROR_CODE).send({ message: 'Не задан email и (или) пароль' });
+  }
+
+  bcrypt
+    .hash(req.body.password, 10)
+    .then((hash) => User.create({
+      name: req.body.name,
+      about: req.body.about,
+      avatar: req.body.avatar,
+      email: req.body.email,
+      password: hash,
+    }))
+    /* .then((user) => res.send({ data: user })) */
+    .then((user) => res
+      .status(201)
+      .send({ _id: user._id, email: user.email }))
     .catch((error) => {
       if (error.name === 'ValidationError') {
         res.status(ERROR_CODE).send({
           message: 'Переданы некорректные данные при создании пользователя',
         });
       } else {
-        res.status(500).send({ message: 'Произошла ошибка' });
+        res.status(500).send({ message: 'Ошибка сервера' });
       }
     });
 };
@@ -92,3 +110,33 @@ module.exports.updateAvatar = (req, res) => {
       }
     });
 };
+
+module.exports.login = (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(401).send({ message: 'Не задан email и (или) пароль' });
+  }
+
+  User.findOne({ email })
+    .then((user) => {
+      if (!user) {
+        return Promise.reject(new Error('Неправильная почта или логин'));
+      }
+      return bcrypt.compare(password, user.password);
+    })
+    .then((matched) => {
+      if (!matched) {
+        return Promise.reject(new Error('Неправильная почта или логин'));
+      }
+      res.send({ message: 'У тебя получилось!' }); // тут надо будет отправить токен
+    })
+    .catch((error) => {
+      res.status(401).send({ message: error.message });
+    });
+};
+
+module.exports.getUserInfo = (req, res) => {
+
+};
+
