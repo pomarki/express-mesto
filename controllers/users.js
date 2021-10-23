@@ -41,9 +41,10 @@ module.exports.createUser = (req, res) => {
 module.exports.updateUserProfile = (req, res) => {
   const ERROR_CODE = 400;
   const { name, about } = req.body;
-  console.log(req.user._id);
+  const userId = req.user._id;
+
   User.findByIdAndUpdate(
-    req.user._id,
+    userId,
     { name, about },
     {
       new: true,
@@ -59,7 +60,7 @@ module.exports.updateUserProfile = (req, res) => {
           message: 'Переданы некорректные данные при обновлении пользователя',
         });
       } else if (error.message === 'NotValidId') {
-        res.status(404).send({ message: 'Пользователя не существует' });
+        res.status(404).send({ message: `Пользователя не существует: ${userId}` });
       } else {
         res.status(500).send({ message: 'Произошла ошибка' });
       }
