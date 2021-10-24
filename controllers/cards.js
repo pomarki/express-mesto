@@ -26,25 +26,6 @@ module.exports.createCard = (req, res) => {
     });
 };
 
-module.exports.deleteCard = (req, res) => {
-  const ERROR_CODE = 400;
-
-  Card.findByIdAndRemove(req.params.cardId)
-    .orFail(new Error('NotValidId'))
-    .then((card) => res.send({ data: card }))
-    .catch((error) => {
-      if (error.name === 'CastError') {
-        res
-          .status(ERROR_CODE)
-          .send({ message: 'Карточки с этим id не существует' });
-      } else if (error.message === 'NotValidId') {
-        res.status(404).send({ message: 'Карточки с этим id не существует' });
-      } else {
-        res.status(500).send({ message: 'Произошла ошибка' });
-      }
-    });
-};
-
 module.exports.likeCard = (req, res) => {
   const ERROR_CODE = 400;
   Card.findByIdAndUpdate(
@@ -86,5 +67,20 @@ module.exports.dislikeCard = (req, res) => {
       } else {
         res.status(500).send({ message: 'Произошла ошибка' });
       }
+    });
+};
+
+module.exports.deleteCard = (req, res) => {
+  Card.findById(req.params.cardId)
+    .orFail(new Error('NotValidId'))
+    .then((card) => {
+      if (card.owner.toString() === req.user._id) {
+        Card.deleteOne({ _id: card._id })
+          .then(res.send({ message: 'Карточка удалена' }));
+      }
+      return res.status(403).send({ message: 'Запрещено удалять карточки чужих пользователей' });
+    })
+    .catch(() => {
+      res.status(500).send({ message: 'Ошибка сервера' });
     });
 };

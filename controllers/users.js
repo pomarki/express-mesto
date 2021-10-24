@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const { SALT_ROUND, JWT_SECRET } = require('../configs');
+const jwtValidate = require('../helpers/jwt-validate');
 
 module.exports.getUsers = (req, res) => {
   User.find({})
@@ -27,13 +29,9 @@ module.exports.getUserById = (req, res) => {
 
 module.exports.createUser = (req, res) => {
   const ERROR_CODE = 400;
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(ERROR_CODE).send({ message: 'Не задан email и (или) пароль' });
-  }
 
   bcrypt
-    .hash(req.body.password, 10)
+    .hash(req.body.password, SALT_ROUND)
     .then((hash) => User.create({
       name: req.body.name,
       about: req.body.about,
@@ -111,42 +109,22 @@ module.exports.updateAvatar = (req, res) => {
     });
 };
 
-/* module.exports.login = (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(401).send({ message: 'Надо отправить логин и пароль' });
-  }
-
-  return User.findUserByCredentials(email, password)
-    .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
-
-      res.send({ token });
-    })
-    .catch((err) => {
-      res
-        .status(401)
-        .send({ message: err.message });
-    });
-}; */
-
 module.exports.login = (req, res) => {
   const { email, password } = req.body;
   let userId;
   User.findOne({ email })
     .then((user) => {
       if (!user) {
-        return Promise.reject(new Error('Неправильная почта или логин'));
+        return Promise.reject(new Error('Неправильная почта или пароль'));
       }
       userId = user._id;
       return bcrypt.compare(password, user.password);
     })
     .then((matched) => {
       if (!matched) {
-        return Promise.reject(new Error('Неправильная почта или логин'));
+        return Promise.reject(new Error('Неправильная почта или пароль'));
       }
-      const token = jwt.sign({ _id: userId }, 'some-secret-key', { expiresIn: '7d' });
+      const token = jwt.sign({ _id: userId }, JWT_SECRET, { expiresIn: '7d' });
 
       res.send({ token });
     })
@@ -158,18 +136,7 @@ module.exports.login = (req, res) => {
 
 module.exports.getActualUserInfo = (req, res) => {
   const ERROR_CODE = 404;
-  const { authorization } = req.headers;
-  if (!authorization || !authorization.startsWith('Bearer ')) {
-    return res.status(401).send({ message: 'Необходима авторизация' });
-  }
-  const token = authorization.replace('Bearer ', '');
-  let payload;
-  try {
-    payload = jwt.verify(token, 'some-secret-key');
-  } catch (err) {
-    return res.status(401).send({ message: 'Необходима авторизация' });
-  }
-  User.findById(payload)
+  User.findById(req.user._id)
 
     .orFail(new Error('NotValidId'))
     .then((user) => res.send({ data: user }))
