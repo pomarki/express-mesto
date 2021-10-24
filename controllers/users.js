@@ -2,7 +2,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const { SALT_ROUND, JWT_SECRET } = require('../configs');
-const jwtValidate = require('../helpers/jwt-validate');
 
 module.exports.getUsers = (req, res) => {
   User.find({})
