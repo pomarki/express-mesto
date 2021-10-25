@@ -3,8 +3,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const { SALT_ROUND, JWT_SECRET } = require('../configs');
 const NotFoundError = require('../errors/not-found-err');
-const BadRequestError = require('../errors/bad-request-err');
 const UnauthorizedError = require('../errors/unauthorized-err');
+const ConflictError = require('../errors/conflict-err');
 
 module.exports.getUsers = (req, res, next) => {
   User.find({})
@@ -25,7 +25,7 @@ module.exports.createUser = (req, res, next) => {
   User.findOne({ email: req.body.email })
     .then((user) => {
       if (user) {
-        throw new BadRequestError('Пользователь с таким email существует');
+        throw new ConflictError('Пользователь с таким email существует');
       }
       bcrypt
         .hash(req.body.password, SALT_ROUND)

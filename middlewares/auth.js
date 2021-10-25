@@ -1,4 +1,3 @@
-/* const jwt = require('jsonwebtoken'); */
 const jwtValidate = require('../helpers/jwt-validate');
 
 module.exports = (req, res, next) => {

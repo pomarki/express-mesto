@@ -1,86 +1,58 @@
 const Card = require('../models/card');
+const BadRequestError = require('../errors/bad-request-err');
+const ForbiddenError = require('../errors/forbidden-err');
 
-module.exports.getCards = (req, res) => {
+module.exports.getCards = (req, res, next) => {
   Card.find({})
     .populate('user')
     .then((cards) => res.send({ data: cards }))
-    .catch(() => res.status(500).send({ message: 'Error all cards' }));
+    .catch(next);
 };
 
-module.exports.createCard = (req, res) => {
-  const ERROR_CODE = 400;
+module.exports.createCard = (req, res, next) => {
   const owner = req.user._id;
   const { name, link, likes } = req.body;
+  if (!name || !link) {
+    return res.status(400).send({ message: 'Переданы некорректные данные для создания карточки' });
+  }
   Card.create({
     name, link, owner, likes,
   })
     .then((card) => res.send({ data: card }))
-    .catch((error) => {
-      if (error.name === 'ValidationError') {
-        res.status(ERROR_CODE).send({
-          message: 'Переданы некорректные данные при создании карточки',
-        });
-      } else {
-        res.status(500).send({ message: 'Произошла ошибка' });
-      }
-    });
+    .catch(next);
 };
 
-module.exports.likeCard = (req, res) => {
-  const ERROR_CODE = 400;
+module.exports.likeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user._id } },
     { new: true },
   )
-    .orFail(new Error('NotValidId'))
+    .orFail(new BadRequestError('Переданы некорректные данные для постановки лайка'))
     .then((card) => res.send({ data: card }))
-    .catch((error) => {
-      if (error.name === 'CastError') {
-        res
-          .status(ERROR_CODE)
-          .send({ message: 'Переданы некорректные данные для постановки лайка' });
-      } else if (error.message === 'NotValidId') {
-        res.status(404).send({ message: 'Переданы некорректные данные для постановки лайка' });
-      } else {
-        res.status(500).send({ message: 'Произошла ошибка' });
-      }
-    });
+    .catch(next);
 };
 
-module.exports.dislikeCard = (req, res) => {
-  const ERROR_CODE = 400;
+module.exports.dislikeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } },
     { new: true },
   )
-    .orFail(new Error('NotValidId'))
+    .orFail(new BadRequestError('Переданы некорректные данные для постановки лайка'))
     .then((card) => res.send({ data: card }))
-    .catch((error) => {
-      if (error.name === 'CastError') {
-        res
-          .status(ERROR_CODE)
-          .send({ message: 'Переданы некорректные данные для снятии лайка.' });
-      } else if (error.message === 'NotValidId') {
-        res.status(404).send({ message: 'Переданы некорректные данные для снятия лайка' });
-      } else {
-        res.status(500).send({ message: 'Произошла ошибка' });
-      }
-    });
+    .catch(next);
 };
 
-module.exports.deleteCard = (req, res) => {
+module.exports.deleteCard = (req, res, next) => {
   Card.findById(req.params.cardId)
-    .orFail(new Error('NotValidId'))
+    .orFail(new BadRequestError('Переданы некорректные данные для постановки лайка'))
     .then((card) => {
       if (card.owner.toString() === req.user._id) {
         Card.deleteOne({ _id: card._id })
           .then(res.send({ message: 'Карточка удалена' }));
       }
-      return res.status(403).send({ message: 'Запрещено удалять карточки чужих пользователей' });
+      throw new ForbiddenError('Нельзя удалять карточки других пользователей');
     })
-    .catch(() => {
-      res.status(500).send({ message: 'Ошибка сервера' });
-    });
+    .catch(next);
 };
