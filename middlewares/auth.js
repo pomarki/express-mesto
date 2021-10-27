@@ -1,17 +1,18 @@
 const jwtValidate = require('../helpers/jwt-validate');
+const UnauthorizedError = require('../errors/unauthorized-err');
 
 module.exports = (req, res, next) => {
   const { authorization } = req.headers;
   if (!authorization || !authorization.startsWith('Bearer ')) {
-    return res.status(401).send({ message: 'Необходима авторизация №1' });
+    throw new UnauthorizedError('Необходима авторизация');
   }
   const token = authorization.replace('Bearer ', '');
   let payload;
   try {
     payload = jwtValidate(token);
   } catch (err) {
-    return res.status(401).send({ message: 'Необходима авторизация №2' });
+    return new UnauthorizedError('Необходима авторизация');
   }
   req.user = payload;
-  next();
+  return next();
 };

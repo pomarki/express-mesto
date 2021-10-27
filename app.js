@@ -7,6 +7,7 @@ const { login, createUser } = require('./controllers/users');
 const userRouter = require('./routes/users');
 const cardRouter = require('./routes/cards');
 const auth = require('./middlewares/auth');
+const NotFoundError = require('./errors/not-found-err');
 
 const { PORT = 3000 } = process.env;
 
@@ -27,13 +28,16 @@ app.post('/signup', celebrate({
   body: Joi.object().keys({
     email: Joi.string().required().email(),
     password: Joi.string().required().min(8),
-  }).unknown(true),
+    name: Joi.string().min(2).max(30),
+    about: Joi.string().min(2).max(30),
+  }),
 }), createUser);
 
 mongoose.connect('mongodb://localhost:27017/mestodb', {
   useNewUrlParser: true,
   useCreateIndex: true,
   useFindAndModify: false,
+  useUnifiedTopology: true,
 });
 
 app.use(auth);
@@ -41,9 +45,8 @@ app.use('/users', userRouter);
 app.use('/cards', cardRouter);
 
 app.use(errors());
-app.use((req, res) => {
-  res.status(404).send('Запрашиваемый ресурс не найден!!!');
-});
+
+app.use((req, res, next) => next(new NotFoundError('Маршрута не существует')));
 
 app.use((err, req, res, next) => {
   const { statusCode = 500, message } = err;
@@ -54,6 +57,7 @@ app.use((err, req, res, next) => {
         ? 'На сервере произошла таинственная ошибка'
         : message,
     });
+  next();
 });
 
 app.listen(PORT, () => {

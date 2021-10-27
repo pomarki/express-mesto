@@ -1,6 +1,5 @@
 const router = require('express').Router();
 const { celebrate, Joi } = require('celebrate');
-const regex = require('../helpers/URL-validate');
 
 const {
   getUsers, getUserById, updateUserProfile, updateAvatar, getActualUserInfo,
@@ -10,7 +9,7 @@ router.get('/', getUsers);
 router.get('/me', getActualUserInfo);
 router.get('/:userId', celebrate({
   params: Joi.object().keys({
-    userId: Joi.string().alphanum().min(16),
+    userId: Joi.string().length(24).hex(),
   }),
 }), getUserById);
 router.patch('/me', celebrate({
@@ -21,7 +20,7 @@ router.patch('/me', celebrate({
 }), updateUserProfile);
 router.patch('/me/avatar', celebrate({
   body: Joi.object().keys({
-    avatar: Joi.string().required().regex(regex),
+    avatar: Joi.string().required(),
   }),
 }), updateAvatar);
 

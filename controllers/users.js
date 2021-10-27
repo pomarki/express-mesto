@@ -36,9 +36,9 @@ module.exports.createUser = (req, res, next) => {
           email: req.body.email,
           password: hash,
         }))
-        .then((user) => res
+        .then((newUser) => res
           .status(201)
-          .send({ _id: user._id, email: user.email }));
+          .send({ _id: newUser._id, email: newUser.email }));
     })
     .catch(next);
 };
@@ -46,10 +46,6 @@ module.exports.createUser = (req, res, next) => {
 module.exports.updateUserProfile = (req, res, next) => {
   const { name, about } = req.body;
   const userId = req.user._id;
-
-  if (!name || !about) {
-    return res.status(400).send({ message: 'Переданы невалидные данные' });
-  }
 
   User.findByIdAndUpdate(
     userId,
@@ -86,7 +82,7 @@ module.exports.updateAvatar = (req, res, next) => {
 module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
   let userId;
-  User.findOne({ email })
+  User.findOne({ email }).select('+password')
     .then((user) => {
       if (!user) {
         return Promise.reject(new UnauthorizedError('Неправильная почта или пароль'));
@@ -100,7 +96,7 @@ module.exports.login = (req, res, next) => {
       }
       const token = jwt.sign({ _id: userId }, JWT_SECRET, { expiresIn: '7d' });
 
-      res.send({ token });
+      return res.send({ token });
     })
 
     .catch(next);
