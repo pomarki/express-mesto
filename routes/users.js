@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const { celebrate, Joi } = require('celebrate');
+const regex = require('../helpers/URL-validate');
 
 const {
   getUsers, getUserById, updateUserProfile, updateAvatar, getActualUserInfo,
@@ -20,7 +21,7 @@ router.patch('/me', celebrate({
 }), updateUserProfile);
 router.patch('/me/avatar', celebrate({
   body: Joi.object().keys({
-    avatar: Joi.string().required(),
+    avatar: Joi.string().pattern(regex),
   }),
 }), updateAvatar);
 

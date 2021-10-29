@@ -8,6 +8,7 @@ const userRouter = require('./routes/users');
 const cardRouter = require('./routes/cards');
 const auth = require('./middlewares/auth');
 const NotFoundError = require('./errors/not-found-err');
+const regex = require('./helpers/URL-validate');
 
 const { PORT = 3000 } = process.env;
 
@@ -30,6 +31,7 @@ app.post('/signup', celebrate({
     password: Joi.string().required().min(8),
     name: Joi.string().min(2).max(30),
     about: Joi.string().min(2).max(30),
+    avatar: Joi.string().pattern(regex),
   }),
 }), createUser);
 
